@@ -2,6 +2,7 @@ import WalletConnection from './component/WalletConnection';
 import Swap from './component/Swap';
 
 import { useWallet } from "@suiet/wallet-kit";
+import Exchange from './component/Exchange';
 
 const SuiSwapApp = () => {
    const wallet = useWallet();
@@ -29,7 +30,8 @@ const SuiSwapApp = () => {
         </div>
           <div className="max-w-6xl mx-auto">
             <WalletConnection />
-        <Swap wallet={ wallet } />
+        {/* <Swap wallet={ wallet } /> */}
+            <Exchange />
           
           </div>
       </div>
