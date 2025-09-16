@@ -2,10 +2,10 @@ import React, { useState } from "react"
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { useWallet } from '@suiet/wallet-kit';
 
-const PACKAGE_ID = '0x7bff7cec7656378f7b4cf38c83c9f05523d3b6f1c27ce530b887d62053f94ccc';
-const MODULE_NAME = 'swap1';
+const PACKAGE_ID = '0xbd759b33812ba356760e6ffc5d8955615ac4965d7849d5ab505b60101cd12393';
+const MODULE_NAME = 'contract';
 const FUNCTION_NAME = 'swap';
-const SWAP_STATE_ID = '0xe956f406b371ff76e229b1ce435d28feedaa23cb4e55ef15911c88243887b590';
+const SWAP_STATE_ID = '0xfcb7bb07e195d50d5b18f21aa70be39af5fcefa966d1b9083d3c25450a23b2aa';
 
 const Exchange = () => {
   const [amount, setAmount] = useState("")
