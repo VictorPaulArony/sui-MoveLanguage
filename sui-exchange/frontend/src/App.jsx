@@ -1,8 +1,10 @@
 import WalletConnection from './component/WalletConnection';
 import Swap from './component/Swap';
 
+
 import { useWallet } from "@suiet/wallet-kit";
 import Exchange from './component/Exchange';
+import AdminControls from './component/AdminControls';
 
 const SuiSwapApp = () => {
    const wallet = useWallet();
@@ -32,6 +34,7 @@ const SuiSwapApp = () => {
             <WalletConnection />
         {/* <Swap wallet={ wallet } /> */}
             <Exchange />
+            <AdminControls />
           
           </div>
       </div>
