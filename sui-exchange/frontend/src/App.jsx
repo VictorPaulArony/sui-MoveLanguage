@@ -1,14 +1,8 @@
 import WalletConnection from './component/WalletConnection';
-import Swap from './component/Swap';
-
-
-import { useWallet } from "@suiet/wallet-kit";
 import Exchange from './component/Exchange';
 import AdminControls from './component/AdminControls';
 
 const SuiSwapApp = () => {
-   const wallet = useWallet();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
       {/* Background Animation */}
@@ -32,10 +26,8 @@ const SuiSwapApp = () => {
         </div>
           <div className="max-w-6xl mx-auto">
             <WalletConnection />
-        {/* <Swap wallet={ wallet } /> */}
             <Exchange />
             <AdminControls />
-          
           </div>
       </div>
     </div>
