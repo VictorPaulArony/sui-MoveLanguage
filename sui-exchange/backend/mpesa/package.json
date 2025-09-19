@@ -1,0 +1,16 @@
+{
+  "name": "mpesa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "mpesa.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "mpesa-node": "^0.1.3"
+  }
+}
