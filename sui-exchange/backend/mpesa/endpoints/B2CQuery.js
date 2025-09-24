@@ -26,7 +26,7 @@ const getAccessToken = async () => {
 };
 
 //function to enable and iniatiate b2c payment
-const initiateB2CPayment = async (phoneNumber, amount) => {
+const initiateB2CPayment = async (phoneNumber, amount, txDigest) => {
     const accessToken = await getAccessToken();
 
     const payload = {
@@ -36,7 +36,7 @@ const initiateB2CPayment = async (phoneNumber, amount) => {
         Amount: amount,
         PartyA: process.env.SENDER_SHORT_CODE, 
         PartyB: phoneNumber,
-        Remarks: 'B2C Payment',
+        Remarks: `Swapv Payment for ${txDigest}`,
         QueueTimeOutURL: process.env.TIMEOUT_URL,
         ResultURL: process.env.RESULT_URL,
         Occasion: 'TestPayout',
