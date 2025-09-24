@@ -61,60 +61,70 @@ app.post('/api/b2c/pay', async (req, res) => {
         return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const session = await mongoose.startSession();
     try {
-        let mpesaResponse;
-        await session.withTransaction(async () => {
-            //check if the digest already processed
-            const existing = await ProcessedSwap.findOne({ txDigest }).session(session);
-            if (existing) {
-                throw new Error('Transaction already processed');
-            }
+        // Check if already processed
+        const existing = await ProcessedSwap.findOne({ txDigest });
+        if (existing) {
+            return res.status(400).json({ error: 'Transaction already processed' });
+        }
 
-            //creaate a reacord in processed swaps
-            const newSwap = new ProcessedSwap({
-                txDigest,
-                phoneNumber: phone,
-                amountKsh,
-                amountSui,
-                status: 'pending',
-            });
-            await newSwap.save({ session });
-
-            //initiate b2c payment
-            mpesaResponse = await initiateB2CPayment(phone, amountKsh, txDigest);
-
-            //log the mpesa response
-            const newLog = new MpesaPaymentLog({
-                txDigest,
-                mpesaTransactionId: mpesaResponse.TransactionID || 'N/A',
-                responseCode: mpesaResponse.ResponseCode,
-                responseDescription: mpesaResponse.ResponseDescription,
-                resultStatus: mpesaResponse.ResponseCode === '0' ? 'mpesa_initiated' : 'mpesa_failed',
-                rawResponse: mpesaResponse,
-            });
-            await newLog.save({ session });
-
-            //update the processed swap status
-            const updatedStatus = (mpesaResponse.ResponseCode == '0' || mpesaResponse.Status == 'Success') ? 'mpesa_initiated' : 'mpesa_failed';
-            newSwap.status = updatedStatus;
-            await newSwap.save({ session });
+        // Create swap record
+        const newSwap = new ProcessedSwap({
+            txDigest,
+            phoneNumber: phone,
+            amountKsh,
+            amountSui,
+            status: 'pending',
         });
+        await newSwap.save();
+
+        // Initiate B2C payment
+        const mpesaResponse = await initiateB2CPayment(phone, amountKsh, txDigest);
+
+        // Log Mpesa response
+        const newLog = new MpesaPaymentLog({
+            txDigest,
+            mpesaTransactionId: mpesaResponse.TransactionID || 'N/A',
+            responseCode: mpesaResponse.ResponseCode,
+            responseDescription: mpesaResponse.ResponseDescription,
+            resultStatus: mpesaResponse.ResponseCode === '0' ? 'mpesa_initiated' : 'mpesa_failed',
+            rawResponse: mpesaResponse,
+        });
+        await newLog.save();
+
+        // Update status
+        const updatedStatus = (mpesaResponse.ResponseCode == '0' || mpesaResponse.Status == 'Success') ? 'mpesa_initiated' : 'mpesa_failed';
+        newSwap.status = updatedStatus;
+        await newSwap.save();
 
         return res.json({ success: true, mpesaResponse });
+
     } catch (error) {
-        if (error.status && error.message) {
-            return res.status(error.status).json({ error: error.message });
-        }
         return res.status(500).json({ error: error.message });
-    } finally {
-        session.endSession();
     }
 });
 
-// ResultURL endpoint for B2C callbac
-app.post('/api/b2c/result', (req, res) => {
-    console.log('B2C Result received:', JSON.stringify(req.body, null, 2));
+// Phone number validation endpoint
+app.post('/api/validate', async (req, res) => {
+    const { phone } = req.body;
+
+    if (!phone || !/^254\d{9}$/.test(phone)) {
+        return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+
+    return res.json({ success: true });
+});
+
+app.post('/api/validate-amount', async (req, res) => {
+ const { amount } = req.body;
+    if (!amount || isNaN(amount) || amount < 0.01) {
+        return res.status(400).json({ error: 'Invalid amount' });
+    }
+     return res.json({ success: true });
+});
+
+// ResultURL endpoint for B2C callback
+app.post('/api/b2c/result', (req, res ) => {
     res.sendStatus(200);
 });
 
