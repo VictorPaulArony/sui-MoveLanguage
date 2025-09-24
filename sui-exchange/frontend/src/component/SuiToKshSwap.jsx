@@ -7,16 +7,15 @@ const MODULE_NAME = import.meta.env.VITE_MODULE_NAME;
 const FUNCTION_NAME = import.meta.env.VITE_FUNCTION_NAME;
 const SWAP_STATE_ID = import.meta.env.VITE_SWAP_STATE_ID;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-console.log("env vars: ", PACKAGE_ID, MODULE_NAME, FUNCTION_NAME, SWAP_STATE_ID, BACKEND_URL);
 
 export default function SuiToKshSwap() {
-    const [amount, setAmount] = React.useState("");
-    const [phoneNumber, setPhoneNumber] = React.useState("");
-    const [txResult, setTxResult] = React.useState(null);
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState(null);
-    const [successMessage, setSuccessMessage] = React.useState(null);
-    const [swapEvent, setSwapEvent] = React.useState(null);
+    const [amount, setAmount] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [txResult, setTxResult] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+    const [swapEvent, setSwapEvent] = useState(null);
 
     const wallet = useWallet();
 
@@ -31,15 +30,38 @@ export default function SuiToKshSwap() {
             setTimeout(() => setError(""), 3000);
             return;
         }
-        if (!phoneNumber || !/^\d{10,15}$/.test(phoneNumber)) {
-            setError("Please enter a valid phone number.");
-            setTimeout(() => setError(""), 3000);
-            return;
-        }
 
         setError(null);
         setLoading(true);
         try {
+
+            // validate phone number via backend
+            const phoneValidationResponse = await fetch(`${BACKEND_URL}/api/validate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phone: phoneNumber }),
+            });
+
+            const phoneValidationData = await phoneValidationResponse.json();
+            if (!phoneValidationResponse.ok) {
+                throw new Error(phoneValidationData.error || 'Phone number validation failed');
+            }
+             //validate amount
+            const amountValidationResponse = await fetch(`${BACKEND_URL}/api/validate-amount`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ amount: amount }),
+            });
+
+            const amountValidationData = await amountValidationResponse.json();
+            if (!amountValidationResponse.ok) {
+                throw new Error(amountValidationData.error || 'Amount validation failed');
+            }
+
             // Convert SUI to MIST (smallest unit)
             const mistAmount = BigInt(Math.round(Number(amount) * 1_000_000_000));
             const tx = new TransactionBlock(); // Create a new transaction block
@@ -63,7 +85,6 @@ export default function SuiToKshSwap() {
                     showEvents: true,
                 },
             });
-            console.log("Transaction result:", result);
             setTxResult(result);
 
             // Parse SwapEvent from emitted events
@@ -74,7 +95,7 @@ export default function SuiToKshSwap() {
             setSwapEvent(emittedSwapEvent ? emittedSwapEvent.parsedJson : null);
             // After successful swap, initiate B2C payment
             const amountInKsh = Math.round(Number(amount) * 100); // Convert to smallest currency unit
-            await initiateB2CPayment(phoneNumber, amountInKsh);
+            await initiateB2CPayment(phoneNumber, amountInKsh, amount, result.digest);
 
             setAmount(""); // Clear input after transaction
             setPhoneNumber("");
@@ -91,29 +112,29 @@ export default function SuiToKshSwap() {
     }
 
     // Function to initiate B2C payment via backend
-    const initiateB2CPayment = async (phoneNumber, amountInKsh) => {
+    const initiateB2CPayment = async (phone, amountKsh, amountSui, txDigest) => {
         setLoading(true);
-        try {
+        try {  
             const response = await fetch(`${BACKEND_URL}/api/b2c/pay`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    phone: phoneNumber,
-                    amount: amountInKsh,
+                    phone: phone,
+                    amountKsh: amountKsh,
+                    amountSui: amountSui,
+                    txDigest: txDigest,
                 }),
             });
             const data = await response.json();
             if (response.ok) {
-                console.log("B2C Payment initiated:", data);
                 setSuccessMessage("Payment initiated successfully!");
                 setTimeout(() => setSuccessMessage(null), 5000);
             } else {
                 throw new Error(data.error || 'B2C Payment initiation failed');
             }
         } catch (error) {
-            console.error('B2C Payment failed', error);
             setError('B2C Payment failed: ' + error.message);
         } finally {
             setLoading(false);
