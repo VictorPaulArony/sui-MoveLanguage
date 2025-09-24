@@ -1,6 +1,5 @@
-To test your `/api/pay` endpoint (which triggers an M-Pesa STK push), you can use the following `curl` command in your terminal.
-
----
+# M-Pesa Test
+## Mpesa STKPush test
 
 ### **Curl Command Example**
 
@@ -38,3 +37,12 @@ If everything is working correctly, you should get a JSON response like this (si
 }
 ```
 
+## Mpesa B2C test
+
+
+
+```bash
+curl -X POST http://localhost:3000/api/b2c/pay \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "254768744700", "amount": 100}'
+```
