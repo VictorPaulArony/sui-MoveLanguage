@@ -84,7 +84,7 @@ public entry fun set_lp_address(
 }
 
 // Main swap function - automatically handles coins and timestamps
-public entry fun swap(
+public entry fun swap_sui_to_ksh(
     swap_state: &mut SwapState,
     coin: Coin<SUI>,
     clock: &Clock,
@@ -139,6 +139,90 @@ public entry fun swap(
     transfer::public_transfer(swap_receipt, sender);
 }
 
+/// Swap function for off-chain KSH → on-chain SUI
+/// Only callable after receiving KSH payment off-chain
+public entry fun send_sui_after_ksh_payment(
+    swap_state: &mut SwapState,
+    recipient: address,
+    amount_sui: u64,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    let tx_digest = *tx_context::digest(ctx);
+
+    // Ensure this transaction hasn't been processed before
+    assert!(!vec_set::contains(&swap_state.processed_tx_digests, &tx_digest), EALREADY_PROCESSED);
+
+    // Only the owner can call this (to prevent abuse)
+    let sender = tx_context::sender(ctx);
+    assert!(sender == swap_state.owner_address, ENOT_OWNER);
+
+    // Check if LP has enough balance
+    let lp_balance = balance::value(&swap_state.lp_balance);
+    assert!(lp_balance >= amount_sui, EINSUFFICIENT_BALANCE);
+
+    let timestamp = clock::timestamp_ms(clock);
+
+    // Split SUI from LP balance
+    let payout_balance = balance::split(&mut swap_state.lp_balance, amount_sui);
+    let payout_coin = coin::from_balance(payout_balance, ctx);
+
+    // Send SUI to recipient
+    transfer::public_transfer(payout_coin, recipient);
+
+    // Create payment record
+    let payment = Payment {
+        id: object::new(ctx),
+        sender: recipient, // the user receiving SUI
+        amount: amount_sui,
+        timestamp,
+        tx_digest: copy tx_digest,
+    };
+
+    // Create SwapReceipt NFT
+    let receipt = SwapReceipt {
+        id: object::new(ctx),
+        tx_digest: copy tx_digest,
+        amount_swapped: amount_sui,
+        timestamp,
+        recipient_lp: swap_state.lp_address,
+    };
+
+    // Mark tx as processed
+    vec_set::insert(&mut swap_state.processed_tx_digests, tx_digest);
+
+    // Emit event for off-chain indexing
+    event::emit(SwapEvent {
+        sender: recipient,
+        lp_address: swap_state.lp_address,
+        amount: amount_sui,
+        timestamp,
+        tx_digest,
+    });
+
+    // Transfer receipt and record to the recipient
+    transfer::public_transfer(payment, recipient);
+    transfer::public_transfer(receipt, recipient);
+}
+
+/// Function to let admin add funds to lp balance
+public entry fun add_liquidity(
+    swap_state: &mut SwapState,
+    coin: Coin<SUI>,
+    ctx: &mut TxContext,
+) {
+    let sender = tx_context::sender(ctx);
+    assert!(sender == swap_state.owner_address, ENOT_OWNER);
+
+    let balance_to_add = coin::into_balance(coin);
+    balance::join(&mut swap_state.lp_balance, balance_to_add);
+}
+
+//function to let admin view lp balance
+public entry fun view_lp_balance(swap_state: &SwapState): u64 {
+    balance::value(&swap_state.lp_balance)
+}
+
 
 // Check if a transaction has been processed
 public fun is_processed(swap_state: &SwapState, tx_digest: vector<u8>): bool {
@@ -155,7 +239,7 @@ public fun get_lp_address(swap_state: &SwapState): address {
     swap_state.lp_address
 }
 
-/// Withdraw funds from the contract (owner only)
+// Withdraw funds from the contract (owner only)
 public entry fun withdraw_funds(swap_state: &mut SwapState, amount: u64, ctx: &mut TxContext) {
     assert!(tx_context::sender(ctx) == swap_state.owner_address, ENOT_OWNER);
 
@@ -193,4 +277,3 @@ public fun get_receipt_details(receipt: &SwapReceipt): (vector<u8>, u64, u64, ad
 public fun is_valid_receipt(receipt: &SwapReceipt, swap_state: &SwapState): bool {
     vec_set::contains(&swap_state.processed_tx_digests, &receipt.tx_digest)
 }
-
