@@ -14,6 +14,7 @@ const app = express();
 app.use(json());
 
 const BACKEND_URL = process.env.BACKEND_URL;
+console.log("Backend URL:", BACKEND_URL);
 
 //enable CORS for all routes (for development purposes)
 app.use(cors({
@@ -38,18 +39,24 @@ mongoose.connect(process.env.MONGODB_URI,)
 
 
 // STK Push Endpoint
+// Add to your existing Express backend (Node.js)
 app.post('/api/pay', async (req, res) => {
-    const { phone, amount } = req.body;
+    const { phone, amount, suiAddress } = req.body;
 
-    if (!phone || !amount) {
-        return res.status(400).json({ error: 'Phone number and amount are required' });
+    if (!phone || !amount || !suiAddress) {
+        return res.status(400).json({ error: 'Phone, amount, and SUI address are required.' });
     }
-
+    console.log("Received payment request:", phone, amount, suiAddress);
     try {
+        // Step 1: Initiate STK push
         const response = await initiateMpesaPayment(phone, amount);
-        res.json(response);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+
+        // Return success to frontend
+        return res.json({ success: true, stkResponse: response });
+
+    } catch (err) {
+        console.error("STK or On-chain error:", err);
+        return res.status(500).json({ error: err.message });
     }
 });
 
@@ -60,7 +67,6 @@ app.post('/api/b2c/pay', async (req, res) => {
     if (!phone || !amountKsh || !txDigest || !amountSui) {
         return res.status(400).json({ error: 'Missing required parameters' });
     }
-
     try {
         // Check if already processed
         const existing = await ProcessedSwap.findOne({ txDigest });
