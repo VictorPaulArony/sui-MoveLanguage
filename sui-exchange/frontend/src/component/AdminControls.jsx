@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { useWallet } from '@suiet/wallet-kit';
 
-const PACKAGE_ID = '0xbd759b33812ba356760e6ffc5d8955615ac4965d7849d5ab505b60101cd12393';
-const MODULE_NAME = 'contract';
-const SWAP_STATE_ID = '0xfcb7bb07e195d50d5b18f21aa70be39af5fcefa966d1b9083d3c25450a23b2aa';
+const PACKAGE_ID = import.meta.env.VITE_PACKAGE_ID;
+const MODULE_NAME = import.meta.env.VITE_MODULE_NAME;
+const SWAP_STATE_ID = import.meta.env.VITE_SWAP_STATE_ID;
 
 const AdminControls = () => {
   const wallet = useWallet();
