@@ -1,7 +1,8 @@
 import WalletConnection from './component/WalletConnection';
-import Exchange from './component/Exchange';
+// import Exchange from './component/Exchange';
 import AdminControls from './component/AdminControls';
 import SuiToKshSwap from './component/SuiToKshSwap';
+import KshToSuiSwap from './component/KshToSuiSwap';
 
 const SuiSwapApp = () => {
   return (
@@ -27,7 +28,8 @@ const SuiSwapApp = () => {
         </div>
           <div className="max-w-6xl mx-auto">
             <WalletConnection />
-            <Exchange />
+            {/* <Exchange /> */}
+            <KshToSuiSwap />
             <SuiToKshSwap />
             <AdminControls />
           </div>
